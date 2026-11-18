@@ -144,20 +144,22 @@ MAP_ROWS = [
     [(10, 12), (50, 51)],
 ]
 
-# (number, name, lat, lon, legend text)
+# (number, name, lat, lon, legend text, label dx, label dy)
+# dx/dy nudge a marker's label circle away from its true spot (a leader line
+# joins them) so clustered markers never overlap.
 MARKERS = [
-    (1, "Kerch Bridge", 45.3, 36.5, "Kerch Bridge — road span down"),
-    (2, "Bahrain", 26.0, 50.5, "Bahrain — drones fired at U.S. radar"),
-    (3, "Manila", 14.6, 121.0, "Manila — Quad mineral deals"),
-    (4, "Paris", 48.8, 2.3, "Paris — strike over pay"),
-    (5, "Ulaanbaatar", 47.9, 106.9, "Ulaanbaatar — president quits"),
-    (6, "DR Congo", -2.9, 23.7, "DR Congo — Ebola tops 11,000"),
-    (7, "Andhra Pradesh", 15.9, 80.0, "Andhra Pradesh — cyclone nears"),
-    (8, "Tokyo", 35.7, 139.7, "Tokyo — jets scrambled"),
-    (9, "Washington", 38.9, -77.0, "Washington — Dow −849; audit fails"),
-    (10, "Dakar", 14.7, -17.4, "Dakar — Youth Olympics open"),
-    (11, "Brasilia", -15.8, -47.9, "Brasília — tourism target hit"),
-    (12, "Jerusalem", 31.8, 35.2, "Jerusalem — unity talks collapse"),
+    (1, "Kerch Bridge", 45.3, 36.5, "Kerch Bridge — road span down", 14, -8),
+    (2, "Bahrain", 26.0, 50.5, "Bahrain — drones fired at U.S. radar", 6, 10),
+    (3, "Manila", 14.6, 121.0, "Manila — Quad mineral deals", 0, 0),
+    (4, "Paris", 48.8, 2.3, "Paris — strike over pay", 0, 0),
+    (5, "Ulaanbaatar", 47.9, 106.9, "Ulaanbaatar — president quits", 0, 0),
+    (6, "DR Congo", -2.9, 23.7, "DR Congo — Ebola tops 11,000", 0, 0),
+    (7, "Andhra Pradesh", 15.9, 80.0, "Andhra Pradesh — cyclone nears", 0, 0),
+    (8, "Tokyo", 35.7, 139.7, "Tokyo — jets scrambled", 0, 0),
+    (9, "Washington", 38.9, -77.0, "Washington — Dow −849; audit fails", 0, 0),
+    (10, "Dakar", 14.7, -17.4, "Dakar — Youth Olympics open", 0, 0),
+    (11, "Brasilia", -15.8, -47.9, "Brasília — tourism target hit", 0, 0),
+    (12, "Jerusalem", 31.8, 35.2, "Jerusalem — unity talks collapse", -20, 10),
 ]
 
 
@@ -170,16 +172,22 @@ def draw_map(draw, x0, y0, w, h):
             for c in range(a, b + 1):
                 cx = x0 + (c + 0.5) * cw
                 draw.ellipse([cx - 2, cy - 2, cx + 2, cy + 2], fill=LAND)
-    fnum = font(SANS_B, 10)
-    for num, _name, lat, lon, _leg in MARKERS:
+    fnum = font(SANS_B, 11)
+    for num, _name, lat, lon, _leg, dx, dy in MARKERS:
         col = (lon + 170) / 6.8
         row = (72 - lat) / 5.4
         cx = x0 + (col + 0.5) * cw
         cy = y0 + (row + 0.5) * ch
-        draw.ellipse([cx - 7, cy - 7, cx + 7, cy + 7], fill=RED, outline=(255, 255, 255), width=1)
+        lx, ly = cx + dx, cy + dy
+        if dx or dy:  # leader line from the true spot to the nudged label
+            draw.line([(cx, cy), (lx, ly)], fill=(255, 255, 255), width=1)
+            draw.ellipse([cx - 2, cy - 2, cx + 2, cy + 2], fill=RED,
+                         outline=(255, 255, 255), width=1)
+        draw.ellipse([lx - 8, ly - 8, lx + 8, ly + 8], fill=RED,
+                     outline=(255, 255, 255), width=2)
         t = str(num)
         tw = draw.textlength(t, font=fnum)
-        draw.text((cx - tw / 2, cy - 6), t, font=fnum, fill=(255, 255, 255))
+        draw.text((lx - tw / 2, ly - 6), t, font=fnum, fill=(255, 255, 255))
 
 
 def draw_panel_number(draw, x, y, w, h, big, small):
@@ -250,7 +258,7 @@ def main():
          "IRAN FIRES ON U.S. RADAR IN BAHRAIN",
          "Drones intercepted, no casualties; tankers hit mines near Hormuz as a "
          "third U.S. carrier arrives."),
-        ("hero-summit", "ASIA · DIPLOMACY",
+        ("hero-summit2", "ASIA · DIPLOMACY",
          "QUAD STRIKES MINERAL DEALS IN MANILA",
          "Trump says the four nations will match China on rare earths in 10 months; "
          "Xi, Trump and Putin to meet Thursday."),
@@ -319,21 +327,21 @@ def main():
     my = 748
     d.line([(MARGIN, my), (W - MARGIN, my)], fill=INK, width=2)
     draw_kicker(d, MARGIN, my + 6, "WHERE IT HAPPENED · 17 NOVEMBER 2026", 13)
-    map_x, map_y, map_w, map_h = MARGIN, my + 26, 400, 110
+    map_x, map_y, map_w, map_h = MARGIN, my + 26, 400, 104
     draw_map(d, map_x, map_y, map_w, map_h)
     lx = map_x + map_w + 16
     lw = W - MARGIN - lx
     f_leg = font(SANS, 12)
     half = 6
-    for i, (_n, _nm, _la, _lo, leg) in enumerate(MARKERS):
+    for i, (_n, _nm, _la, _lo, leg, _dx, _dy) in enumerate(MARKERS):
         col = 0 if i < half else 1
         row = i % half
         x = lx + col * (lw // 2)
-        y = map_y + 4 + row * 18
+        y = map_y + 4 + row * 16
         d.text((x, y), leg, font=f_leg, fill=INK)
 
     # ---------- also list ----------
-    ay = 894
+    ay = 886
     d.line([(MARGIN, ay), (W - MARGIN, ay)], fill=INK, width=2)
     draw_kicker(d, MARGIN, ay + 6, "ALSO ON TUESDAY", 13)
     also = [
@@ -353,15 +361,23 @@ def main():
         "Latin America: Catholics fall to 55% in 30 years",
         "UN: 128 states debate a ban on killer robots",
         "Salesforce −9% as software sell-off deepens",
+        "Vulcan booster blamed as 40 Amazon satellites lost",
+        "Xi, Carney cut tariffs in Shenzhen ahead of APEC",
+        "Depardieu drops appeal; assault conviction stands",
+        "Dhaka police arrest 526 amid bomb blasts",
+        "Australia softens backpacker visa crackdown",
+        "West presses Israel to open Gaza crossings",
+        "Mofokeng brace lifts South Africa past Kenya 2–1",
+        "RBA minutes show rate-hike case on inflation",
     ]
-    f_also = font(SERIF, 12)
-    per_col = 6
+    f_also = font(SERIF, 11)
+    per_col = 8
     colw = CW // 3
     for i, item in enumerate(also):
         col = i // per_col
         row = i % per_col
         x = MARGIN + col * colw
-        y = ay + 26 + row * 14
+        y = ay + 24 + row * 12
         d.text((x, y), "•  " + item, font=f_also, fill=INK)
 
     # ---------- footer ----------
